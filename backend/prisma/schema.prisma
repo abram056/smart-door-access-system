@@ -1,0 +1,145 @@
+// Smart Door Access System — Prisma schema
+// Source of truth for the database: docs/06_Domain_Model.md
+// Six tables: users, rfid_cards, devices, doors, access_logs, administrators
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enumerations (shared values — see docs/05_Message_Contracts.md)
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CardStatus {
+  ACTIVE
+  DISABLED
+  LOST
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  DISABLED
+}
+
+enum DoorStatus {
+  OPEN
+  CLOSED
+}
+
+enum AccessResult {
+  GRANTED
+  DENIED
+}
+
+enum AccessReason {
+  AUTHORIZED
+  UNKNOWN_CARD
+  NO_PERMISSION
+  USER_DISABLED
+  DEVICE_DISABLED
+  OFFLINE_CACHE
+  SYSTEM_ERROR
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String     @id @default(uuid())
+  fullName  String
+  email     String?
+  role      String     @default("STAFF")
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  card      RFIDCard?
+  accessLogs AccessLog[]
+}
+
+model RFIDCard {
+  id        String     @id @default(uuid())
+  uid       String     @unique
+  status    CardStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+
+  accessLogs AccessLog[]
+}
+
+model Device {
+  id             String       @id @default(uuid())
+  deviceId       String       @unique
+  deviceToken    String
+  name           String
+  firmwareVersion String?
+  status         DeviceStatus @default(OFFLINE)
+  lastSeen       DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  doorId        String       @unique
+  door          Door         @relation(fields: [doorId], references: [id])
+
+  accessLogs    AccessLog[]
+}
+
+model Door {
+  id        String     @id @default(uuid())
+  name      String
+  location  String?
+  status    DoorStatus @default(CLOSED)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  device    Device?
+  accessLogs AccessLog[]
+}
+
+model AccessLog {
+  id        String       @id @default(uuid())
+  timestamp DateTime     @default(now())
+  result    AccessResult
+  reason    AccessReason
+  offline   Boolean      @default(false)
+  rfidUid   String?
+  createdAt DateTime     @default(now())
+
+  device   Device? @relation(fields: [deviceId], references: [id])
+  door     Door?   @relation(fields: [doorId], references: [id])
+  user     User?   @relation(fields: [userId], references: [id])
+  card     RFIDCard? @relation(fields: [cardId], references: [id])
+
+  deviceId String?
+  doorId   String?
+  userId   String?
+  cardId   String?
+
+  @@index([timestamp])
+  @@index([deviceId])
+  @@index([userId])
+}
+
+model Administrator {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

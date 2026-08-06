@@ -1,0 +1,18 @@
+{
+  "name": "smart-door-project",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Smart Door Access System — firmware, backend, and dashboard monorepo",
+  "workspaces": [
+    "shared",
+    "backend",
+    "dashboard"
+  ],
+  "scripts": {
+    "setup": "npm install && npm run build:shared",
+    "build:shared": "npm run build -w @smartdoor/shared",
+    "dev:backend": "npm run dev -w @smartdoor/backend",
+    "dev:dashboard": "npm run dev -w @smartdoor/dashboard",
+    "check": "npm run check -w @smartdoor/backend && npm run build -w @smartdoor/dashboard"
+  }
+}
