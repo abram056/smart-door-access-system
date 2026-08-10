@@ -19,5 +19,11 @@ logs/
 .idea/
 .DS_Store
 
+# AI agent tooling (local, not shared with students)
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
+
 # Prisma generated client
 backend/src/generated/prisma/
