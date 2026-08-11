@@ -28,3 +28,15 @@ enum class EnrollmentState
     Complete,
     Failed
 };
+
+// Main controller state machine (docs/04 "Complete System Lifecycle")
+enum class SystemState
+{
+    Boot,
+    Connecting,
+    WaitingForCard,
+    Processing,
+    Unlocked,
+    Offline,
+    Enrollment
+};

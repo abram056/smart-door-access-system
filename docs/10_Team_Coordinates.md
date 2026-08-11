@@ -50,6 +50,14 @@ Dashboard: shows "Enrollment Successful"
 
 Dependency chain: **Dashboard → Backend session → Firmware card read → Backend → Dashboard.**
 
+> **Additive contract (Backend team):** the Firmware learns that a session is
+> active by polling `GET /api/cards/enroll/status`, which returns the
+> `EnrollmentStatus` enum from `docs/05` (`WAITING` / `SUCCESS` / `FAILED`).
+> It only flashes the card-read pattern while the status is `WAITING`, sends
+> `POST /cards/enroll/confirm` when a card is scanned, and clears the session
+> via the confirm response (see also `docs/04` Event 5). This read-only
+> endpoint is additive — nothing else in `docs/05` changes.
+
 ### Offline mode
 
 ```
