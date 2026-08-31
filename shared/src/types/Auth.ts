@@ -1,13 +1,11 @@
+// Matches docs/05_Message_Contracts.md — Contract 7 (Administrator Login)
+
 export interface LoginRequest {
-
-    username: string;
-
-    password: string;
+  username: string;
+  password: string;
 }
 
 export interface LoginResponse {
-
-    token: string;
-
-    expiresAt: Date;
+  access_token: string;
+  expires_in: number; // seconds
 }

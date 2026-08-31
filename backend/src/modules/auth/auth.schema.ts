@@ -1,6 +1,8 @@
-/**
- * auth.schema.ts defines validation schemas for auth.
- */
-export const authSchema = {
-    // TODO: define auth schema
-}
+import { z } from "zod";
+
+export const loginSchema = z.object({
+  username: z.string().min(1, "username is required"),
+  password: z.string().min(1, "password is required"),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
