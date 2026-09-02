@@ -8,7 +8,7 @@ interface AuthLayoutProps {
  * AuthLayout wraps authentication pages with dedicated styles.
  */
 const AuthLayout = ({ children }: AuthLayoutProps) => {
-    return <div className="auth-layout">{children}</div>
+    return <div style={{ maxWidth: '420px', margin: '3rem auto', padding: '1.5rem' }}>{children}</div>
 }
 
 export default AuthLayout

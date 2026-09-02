@@ -1,9 +1,10 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import authService from '../services/auth/authService'
 
 interface AuthContextValue {
     isAuthenticated: boolean
-    login: () => Promise<void>
+    login: (username: string, password: string) => Promise<void>
     logout: () => Promise<void>
 }
 
@@ -21,16 +22,26 @@ interface AuthProviderProps {
  * AuthProvider exposes authentication state to the app.
  */
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-    const login = async () => {
-        // TODO: implement auth login
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+    useEffect(() => {
+        setIsAuthenticated(Boolean(localStorage.getItem('smartdoor_token')))
+    }, [])
+
+    const login = async (username: string, password: string) => {
+        await authService.login(username, password)
+        setIsAuthenticated(true)
     }
 
     const logout = async () => {
-        // TODO: implement auth logout
+        await authService.logout()
+        setIsAuthenticated(false)
     }
 
+    const value = useMemo(() => ({ isAuthenticated, login, logout }), [isAuthenticated])
+
     return (
-        <AuthContext.Provider value={{ isAuthenticated: false, login, logout }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     )
