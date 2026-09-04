@@ -1,12 +1,15 @@
+import { useAuthContext } from '../contexts/AuthContext'
+
 /**
  * useAuth exposes authentication state and actions.
  */
 const useAuth = () => {
-    // TODO: return actual auth state and methods
+    const auth = useAuthContext()
+
     return {
-        user: null,
-        login: async () => { },
-        logout: async () => { },
+        isAuthenticated: auth.isAuthenticated,
+        login: auth.login,
+        logout: auth.logout,
     }
 }
 
