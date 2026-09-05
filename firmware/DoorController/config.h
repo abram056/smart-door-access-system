@@ -6,8 +6,8 @@
 // ============================================================
 
 // --- Wi-Fi -------------------------------------------------
-#define WIFI_SSID       "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID       "Virus"
+#define WIFI_PASSWORD   "11111111"
 
 // --- Backend ------------------------------------------------
 // Point this at your backend (LAN IP of the machine running the API).
