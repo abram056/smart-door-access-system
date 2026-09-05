@@ -3,7 +3,7 @@
 // Six tables: users, rfid_cards, devices, doors, access_logs, administrators
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 

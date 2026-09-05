@@ -1,15 +1,19 @@
+// Relative to the /api prefix (see backend routes.ts).
+
 export const ApiRoutes = {
+  LOGIN: "/auth/login",
 
-    LOGIN: "/auth/login",
+  USERS: "/users",
 
-    USERS: "/users",
+  CARDS: "/cards",
+  CARDS_ENROLL: "/cards/enroll",
+  CARDS_ENROLL_CONFIRM: "/cards/enroll/confirm",
 
-    DEVICES: "/devices",
+  DEVICES: "/devices",
+  DEVICES_HEARTBEAT: "/devices/heartbeat",
 
-    CARDS: "/cards",
+  ACCESS: "/access",
+  ACCESS_LOGS_SYNC: "/access/logs/sync",
 
-    ACCESS: "/access",
-
-    LOGS: "/logs"
-
-};
+  LOGS: "/logs",
+} as const;
