@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import apiClient, { ApiError } from '../../services/api/apiClient'
 
 interface SystemSettings {
@@ -22,6 +22,21 @@ const SettingsPage = () => {
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
     const [emergencyCardUid, setEmergencyCardUid] = useState('')
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const data = await apiClient.get<SystemSettings>('/api/settings')
+                setSettings(data)
+            } catch (err) {
+                console.error('Failed to load settings:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadSettings()
+    }, [])
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -102,6 +117,10 @@ const SettingsPage = () => {
         } catch (err) {
             setError('Failed to remove emergency card')
         }
+    }
+
+    if (loading) {
+        return <p>Loading settings...</p>
     }
 
     return (

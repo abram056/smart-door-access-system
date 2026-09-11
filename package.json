@@ -3,13 +3,14 @@
   "private": true,
   "workspaces": [
     "shared",
-    "backend"
+    "backend",
+    "dashboard"
   ],
   "scripts": {
     "build:shared": "npm run build -w @smartdoor/shared",
     "predev": "npm run build:shared",
     "prebuild": "npm run build:shared",
     "dev:backend": "npm run dev -w @smartdoor/backend",
-    "check": "npm run check -w @smartdoor/backend"
+    "check": "npm run build:shared && npm run check -w @smartdoor/backend && npm run build -w @smartdoor/dashboard"
   }
 }

@@ -25,7 +25,7 @@ export async function listDevicesHandler(req: Request, res: Response, next: Next
 
 export async function getDeviceHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const device = await deviceService.getDeviceOrThrow(req.params.id);
+    const device = await deviceService.getDeviceOrThrow(req.params.id as string);
     res.status(200).json(device);
   } catch (err) {
     next(err);
@@ -34,7 +34,16 @@ export async function getDeviceHandler(req: Request, res: Response, next: NextFu
 
 export async function updateDeviceHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const device = await deviceService.updateDevice(req.params.id, req.body as UpdateDeviceInput);
+    const device = await deviceService.updateDevice(req.params.id as string, req.body as UpdateDeviceInput);
+    res.status(200).json(device);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteDeviceHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const device = await deviceService.deleteDevice(req.params.id as string);
     res.status(200).json(device);
   } catch (err) {
     next(err);

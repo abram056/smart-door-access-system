@@ -9,6 +9,7 @@ import {
   listDevicesHandler,
   registerDeviceHandler,
   updateDeviceHandler,
+  deleteDeviceHandler,
 } from "./device.controller";
 
 const router = Router();
@@ -23,5 +24,6 @@ router.get("/", listDevicesHandler);
 router.post("/", validate("body", registerDeviceSchema), registerDeviceHandler);
 router.get("/:id", getDeviceHandler);
 router.put("/:id", validate("body", updateDeviceSchema), updateDeviceHandler);
+router.delete("/:id", deleteDeviceHandler);
 
 export default router;

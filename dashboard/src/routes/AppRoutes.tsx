@@ -10,10 +10,10 @@ import DevicesPage from '../pages/Devices/DevicesPage'
 import LogsPage from '../pages/Logs/LogsPage'
 import SettingsPage from '../pages/Settings/SettingsPage'
 
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated } = useAuthContext()
 
-    return isAuthenticated ? children : <Navigate to="/login" replace />
+    return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 /**

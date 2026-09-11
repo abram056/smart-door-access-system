@@ -16,8 +16,13 @@ export class ApiError extends Error {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+const API_PREFIX = '/api'
 
-const buildUrl = (path: string) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+const buildUrl = (path: string) => {
+    const normalized = path.startsWith('/') ? path : `/${path}`
+    const full = normalized.startsWith(API_PREFIX) ? normalized : `${API_PREFIX}${normalized}`
+    return `${API_BASE_URL}${full}`
+}
 
 const normalizeError = async (response: Response) => {
     const payload = (await response.json().catch(() => null)) as ApiErrorShape | null
@@ -29,7 +34,7 @@ const normalizeError = async (response: Response) => {
     throw new ApiError('REQUEST_FAILED', response.statusText || 'Request failed')
 }
 
-const getAuthHeader = () => {
+const getAuthHeader = (): Record<string, string> => {
     const token = localStorage.getItem('smartdoor_token')
     return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -60,6 +65,37 @@ const apiClient = {
                 ...getAuthHeader(),
             },
             body: JSON.stringify(body),
+        })
+
+        if (!response.ok) {
+            await normalizeError(response)
+        }
+
+        return response.json() as Promise<T>
+    },
+    put: async <T>(path: string, body: unknown): Promise<T> => {
+        const response = await fetch(buildUrl(path), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader(),
+            },
+            body: JSON.stringify(body),
+        })
+
+        if (!response.ok) {
+            await normalizeError(response)
+        }
+
+        return response.json() as Promise<T>
+    },
+    delete: async <T>(path: string): Promise<T> => {
+        const response = await fetch(buildUrl(path), {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeader(),
+            },
         })
 
         if (!response.ok) {

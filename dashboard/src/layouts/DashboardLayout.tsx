@@ -11,11 +11,11 @@ interface DashboardLayoutProps {
  */
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', minHeight: '100vh' }}>
+        <div className="dashboard-layout">
             <Sidebar />
-            <div>
+            <div className="dashboard-main">
                 <Header />
-                <main style={{ padding: '1rem' }}>{children}</main>
+                <main className="dashboard-content">{children}</main>
             </div>
         </div>
     )

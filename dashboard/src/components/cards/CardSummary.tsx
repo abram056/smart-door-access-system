@@ -11,7 +11,7 @@ const CardSummary = ({ card }: CardSummaryProps) => {
     return (
         <article>
             <h2>{card.uid}</h2>
-            <p>Status: {card.enabled ? 'Active' : 'Disabled'}</p>
+            <p>Status: {card.status === 'ACTIVE' ? 'Active' : 'Disabled'}</p>
         </article>
     )
 }

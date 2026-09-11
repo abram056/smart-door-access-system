@@ -4,5 +4,7 @@ export enum AccessEvents {
 
     DENIED = "access.denied",
 
-    LOG_CREATED = "access.log.created"
+    LOG_CREATED = "access.log.created",
+
+    ENROLLMENT_COMPLETED = "access.enrollment.completed"
 }

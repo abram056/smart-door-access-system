@@ -22,7 +22,7 @@ export async function listUsersHandler(req: Request, res: Response, next: NextFu
 
 export async function getUserHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await userService.getUserOrThrow(req.params.id);
+    const user = await userService.getUserOrThrow(req.params.id as string);
     res.status(200).json(user);
   } catch (err) {
     next(err);
@@ -31,7 +31,7 @@ export async function getUserHandler(req: Request, res: Response, next: NextFunc
 
 export async function updateUserHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await userService.updateUser(req.params.id, req.body as UpdateUserInput);
+    const user = await userService.updateUser(req.params.id as string, req.body as UpdateUserInput);
     res.status(200).json(user);
   } catch (err) {
     next(err);
@@ -41,7 +41,7 @@ export async function updateUserHandler(req: Request, res: Response, next: NextF
 // DELETE is a soft-disable, not a hard delete — see user.service.ts.
 export async function disableUserHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await userService.disableUser(req.params.id);
+    const user = await userService.disableUser(req.params.id as string);
     res.status(200).json(user);
   } catch (err) {
     next(err);

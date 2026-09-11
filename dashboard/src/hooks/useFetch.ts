@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import apiClient, { ApiError } from '../services/api/apiClient'
+import { useCallback, useEffect, useState } from 'react'
+import apiClient from '../services/api/apiClient'
 
 interface UseFetchState<T> {
     data: T | null
@@ -7,15 +7,22 @@ interface UseFetchState<T> {
     error: Error | null
 }
 
+export interface UseFetchResult<T> extends UseFetchState<T> {
+    refetch: () => void
+}
+
 /**
  * useFetch is a hook for loading data from the backend.
  */
-const useFetch = <T>(endpoint: string) => {
+const useFetch = <T>(endpoint: string): UseFetchResult<T> => {
     const [state, setState] = useState<UseFetchState<T>>({
         data: null,
         loading: true,
         error: null,
     })
+    const [trigger, setTrigger] = useState(0)
+
+    const refetch = useCallback(() => setTrigger((n) => n + 1), [])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -32,9 +39,9 @@ const useFetch = <T>(endpoint: string) => {
         if (endpoint) {
             fetchData()
         }
-    }, [endpoint])
+    }, [endpoint, trigger])
 
-    return state
+    return { ...state, refetch }
 }
 
 export default useFetch

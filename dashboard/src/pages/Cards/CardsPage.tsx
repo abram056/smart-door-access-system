@@ -1,29 +1,71 @@
-import { useState } from 'react'
-import { RFIDCard, User, UserRole } from '@smartdoor/shared'
+import { useState, useEffect } from 'react'
+import type { RFIDCard, User } from '@smartdoor/shared'
+import { AccessEvents } from '@smartdoor/shared'
 import useFetch from '../../hooks/useFetch'
 import apiClient, { ApiError } from '../../services/api/apiClient'
+import socketService from '../../services/websocket/socketService'
 
-interface CardsResponse {
-    data: RFIDCard[]
+interface PaginatedCards {
+    items: RFIDCard[]
+    pagination: {
+        page: number
+        pageSize: number
+        totalItems: number
+        totalPages: number
+    }
 }
 
-interface UsersResponse {
-    data: User[]
+interface PaginatedUsers {
+    items: User[]
+    pagination: {
+        page: number
+        pageSize: number
+        totalItems: number
+        totalPages: number
+    }
 }
 
 type EnrollmentStep = 'idle' | 'select-user' | 'waiting' | 'success' | 'error'
+
+const ENROLLMENT_TIMEOUT_MS = 35000
 
 /**
  * CardsPage manages RFID card enrollment and operations.
  */
 const CardsPage = () => {
-    const cardsRes = useFetch<CardsResponse>('/api/cards')
-    const usersRes = useFetch<UsersResponse>('/api/users')
+    const { data: cardsData, loading: cardsLoading, error: cardsError, refetch: refetchCards } = useFetch<PaginatedCards>('/api/cards')
+    const { data: usersData } = useFetch<PaginatedUsers>('/api/users')
 
     const [enrollmentStep, setEnrollmentStep] = useState<EnrollmentStep>('idle')
     const [selectedUserId, setSelectedUserId] = useState('')
     const [enrollmentError, setEnrollmentError] = useState('')
     const [enrollmentSuccess, setEnrollmentSuccess] = useState('')
+
+    useEffect(() => {
+        const socket = socketService.connect()
+
+        const handleEnrollmentCompleted = (data: { status: string; user?: string }) => {
+            if (data.status === 'REGISTERED') {
+                setEnrollmentStep('success')
+                setEnrollmentSuccess(`Card enrolled successfully for ${data.user || 'user'}!`)
+                setSelectedUserId('')
+                setTimeout(() => {
+                    setEnrollmentStep('idle')
+                    refetchCards()
+                }, 2000)
+            } else {
+                setEnrollmentStep('error')
+                setEnrollmentError('Enrollment failed. Please try again.')
+            }
+        }
+
+        socket.on(AccessEvents.ENROLLMENT_COMPLETED, handleEnrollmentCompleted)
+
+        return () => {
+            socket.off(AccessEvents.ENROLLMENT_COMPLETED, handleEnrollmentCompleted)
+            socketService.disconnect()
+        }
+    }, [refetchCards])
 
     const uidToHex = (uid: string) => {
         try {
@@ -47,18 +89,20 @@ const CardsPage = () => {
         setEnrollmentSuccess('')
 
         try {
-            // Call backend to start enrollment session
-            const response = await apiClient.post('/api/cards/enroll/start', {
+            await apiClient.post('/api/cards/enroll', {
                 userId: selectedUserId,
             })
-
-            if (!response) {
-                throw new Error('Failed to start enrollment')
-            }
-
             setEnrollmentSuccess('Enrollment session started. Waiting for card...')
-            // In a real implementation, this would wait for the backend to receive the card scan
-            // For now, we'll simulate the waiting state
+
+            setTimeout(() => {
+                setEnrollmentStep((current) => {
+                    if (current === 'waiting') {
+                        setEnrollmentError('Timed out waiting for card. Please try again.')
+                        return 'error'
+                    }
+                    return current
+                })
+            }, ENROLLMENT_TIMEOUT_MS)
         } catch (err) {
             setEnrollmentStep('error')
             if (err instanceof ApiError) {
@@ -69,43 +113,13 @@ const CardsPage = () => {
         }
     }
 
-    const handleConfirmEnrollment = async (uid: string) => {
-        try {
-            await apiClient.post('/api/cards/enroll/confirm', { uid })
-            setEnrollmentStep('success')
-            setEnrollmentSuccess('Card enrolled successfully!')
-            setSelectedUserId('')
-            setTimeout(() => {
-                setEnrollmentStep('idle')
-                window.location.reload()
-            }, 2000)
-        } catch (err) {
-            setEnrollmentStep('error')
-            if (err instanceof ApiError) {
-                setEnrollmentError(err.message)
-            } else {
-                setEnrollmentError('Failed to confirm enrollment')
-            }
-        }
-    }
-
     const handleDisableCard = async (cardId: string) => {
         if (!confirm('Are you sure you want to disable this card?')) return
         try {
-            await apiClient.post(`/api/cards/${cardId}/disable`, {})
-            window.location.reload()
+            await apiClient.delete(`/api/cards/${cardId}`)
+            refetchCards()
         } catch (err) {
-            alert('Failed to disable card')
-        }
-    }
-
-    const handleDeleteCard = async (cardId: string) => {
-        if (!confirm('Are you sure you want to delete this card?')) return
-        try {
-            await apiClient.post(`/api/cards/${cardId}/delete`, {})
-            window.location.reload()
-        } catch (err) {
-            alert('Failed to delete card')
+            setEnrollmentError('Failed to disable card')
         }
     }
 
@@ -127,7 +141,7 @@ const CardsPage = () => {
                                 style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
                             >
                                 <option value="">-- Select a user --</option>
-                                {usersRes.data?.data?.map((user) => (
+                                {usersData?.items?.map((user) => (
                                     <option key={user.id} value={user.id}>
                                         {user.fullName}
                                     </option>
@@ -161,7 +175,7 @@ const CardsPage = () => {
                                 marginBottom: '1rem',
                             }}
                         >
-                            ⏳ Waiting for RFID card... Please scan a card now.
+                            Waiting for RFID card... Please scan a card now. (35s timeout)
                         </p>
                         <button
                             onClick={() => setEnrollmentStep('idle')}
@@ -188,7 +202,7 @@ const CardsPage = () => {
                             borderRadius: '0.375rem',
                         }}
                     >
-                        ✓ {enrollmentSuccess}
+                        {enrollmentSuccess}
                     </p>
                 )}
 
@@ -203,7 +217,7 @@ const CardsPage = () => {
                                 marginBottom: '1rem',
                             }}
                         >
-                            ✗ {enrollmentError}
+                            {enrollmentError}
                         </p>
                         <button
                             onClick={() => setEnrollmentStep('idle')}
@@ -223,72 +237,59 @@ const CardsPage = () => {
             </div>
 
             <h2>Enrolled Cards</h2>
-            {cardsRes.loading && <p>Loading cards...</p>}
-            {cardsRes.error && <p style={{ color: '#ef4444' }}>Failed to load cards</p>}
+            {cardsLoading && <p>Loading cards...</p>}
+            {cardsError && <p style={{ color: '#ef4444' }}>Failed to load cards</p>}
 
-            {cardsRes.data?.data && cardsRes.data.data.length > 0 && (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>UID</th>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>User ID</th>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Status</th>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {cardsRes.data.data.map((card) => (
-                            <tr key={card.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                <td style={{ padding: '0.75rem', fontFamily: 'monospace' }}>{uidToHex(card.uid)}</td>
-                                <td style={{ padding: '0.75rem' }}>{card.userId}</td>
-                                <td style={{ padding: '0.75rem' }}>
-                                    <span
-                                        style={{
-                                            padding: '0.25rem 0.75rem',
-                                            backgroundColor: card.enabled ? '#d1fae5' : '#fee2e2',
-                                            color: card.enabled ? '#065f46' : '#991b1b',
-                                            borderRadius: '0.25rem',
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
-                                        {card.enabled ? 'Active' : 'Disabled'}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '0.75rem' }}>
-                                    <button
-                                        onClick={() => handleDisableCard(card.id)}
-                                        style={{
-                                            marginRight: '0.5rem',
-                                            padding: '0.25rem 0.75rem',
-                                            backgroundColor: '#fbbf24',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.25rem',
-                                            cursor: 'pointer',
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
-                                        Disable
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteCard(card.id)}
-                                        style={{
-                                            padding: '0.25rem 0.75rem',
-                                            backgroundColor: '#ef4444',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.25rem',
-                                            cursor: 'pointer',
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
+            {cardsData?.items && cardsData.items.length > 0 && (
+                <div className="table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>UID</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>User ID</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>Status</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {cardsData.items.map((card) => (
+                                <tr key={card.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                    <td style={{ padding: '0.75rem', fontFamily: 'monospace' }}>{uidToHex(card.uid)}</td>
+                                    <td style={{ padding: '0.75rem' }}>{card.userId}</td>
+                                    <td style={{ padding: '0.75rem' }}>
+                                        <span
+                                            style={{
+                                                padding: '0.25rem 0.75rem',
+                                                backgroundColor: card.status === 'ACTIVE' ? '#d1fae5' : '#fee2e2',
+                                                color: card.status === 'ACTIVE' ? '#065f46' : '#991b1b',
+                                                borderRadius: '0.25rem',
+                                                fontSize: '0.875rem',
+                                            }}
+                                        >
+                                            {card.status === 'ACTIVE' ? 'Active' : 'Disabled'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '0.75rem' }}>
+                                        <button
+                                            onClick={() => handleDisableCard(card.id)}
+                                            style={{
+                                                padding: '0.25rem 0.75rem',
+                                                backgroundColor: '#fbbf24',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '0.25rem',
+                                                cursor: 'pointer',
+                                                fontSize: '0.875rem',
+                                            }}
+                                        >
+                                            Disable
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </>
     )

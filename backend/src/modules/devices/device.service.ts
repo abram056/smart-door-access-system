@@ -68,11 +68,22 @@ export async function updateDevice(id: string, input: UpdateDeviceInput): Promis
   return prisma.device.update({ where: { id }, data: input });
 }
 
+// FR-3.3: "Remove" a device by disabling it (soft-delete for audit trail).
+export async function deleteDevice(id: string): Promise<Device> {
+  await getDeviceOrThrow(id);
+  return prisma.device.update({ where: { id }, data: { status: "DISABLED" } });
+}
+
 // Contract 1: called by an already-authenticated device (see device.middleware).
 export async function recordHeartbeat(
   deviceRowId: string,
   input: HeartbeatInput,
 ): Promise<{ status: "OK"; heartbeat_interval: number }> {
+  const device = await prisma.device.findUnique({ where: { id: deviceRowId } });
+  if (!device) {
+    throw AppError.notFound(ErrorCodes.DEVICE_NOT_FOUND, "Device not found.");
+  }
+
   const updated = await prisma.device.update({
     where: { id: deviceRowId },
     data: {
@@ -80,6 +91,13 @@ export async function recordHeartbeat(
       status: "ONLINE",
       firmwareVersion: input.firmware_version,
     },
+  });
+
+  // Persist door state from the heartbeat (LOCKED → CLOSED, UNLOCKED → OPEN).
+  const doorStatus = input.door_state === "LOCKED" ? "CLOSED" : "OPEN";
+  await prisma.door.update({
+    where: { id: device.doorId },
+    data: { status: doorStatus },
   });
 
   emitDeviceConnected(updated.deviceId);

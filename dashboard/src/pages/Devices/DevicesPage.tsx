@@ -1,10 +1,17 @@
 import { useState } from 'react'
-import { Device, DeviceStatus as DeviceStatusEnum } from '@smartdoor/shared'
+import type { Device } from '@smartdoor/shared'
+import { DeviceStatus as DeviceStatusEnum } from '@smartdoor/shared'
 import useFetch from '../../hooks/useFetch'
 import apiClient, { ApiError } from '../../services/api/apiClient'
 
-interface DevicesResponse {
-    data: Device[]
+interface PaginatedDevices {
+    items: Device[]
+    pagination: {
+        page: number
+        pageSize: number
+        totalItems: number
+        totalPages: number
+    }
 }
 
 interface RegisterResponse {
@@ -16,11 +23,11 @@ interface RegisterResponse {
  * DevicesPage displays and manages registered devices.
  */
 const DevicesPage = () => {
-    const devicesRes = useFetch<DevicesResponse>('/api/devices')
+    const { data, loading, error, refetch } = useFetch<PaginatedDevices>('/api/devices')
     const [showRegister, setShowRegister] = useState(false)
-    const [registrationData, setRegistrationData] = useState({ name: '', doorId: '' })
+    const [registrationData, setRegistrationData] = useState({ device_name: '', door_name: '' })
     const [registeredDevice, setRegisteredDevice] = useState<RegisterResponse | null>(null)
-    const [error, setError] = useState('')
+    const [formError, setFormError] = useState('')
     const [success, setSuccess] = useState('')
 
     const getStatusColor = (status: string) => {
@@ -38,23 +45,23 @@ const DevicesPage = () => {
 
     const handleRegisterDevice = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError('')
+        setFormError('')
         setSuccess('')
 
         try {
-            const response = await apiClient.post<RegisterResponse>('/api/devices/register', registrationData)
+            const response = await apiClient.post<RegisterResponse>('/api/devices', registrationData)
             setRegisteredDevice(response)
             setSuccess('Device registered successfully')
-            setRegistrationData({ name: '', doorId: '' })
+            setRegistrationData({ device_name: '', door_name: '' })
             setTimeout(() => {
                 setShowRegister(false)
-                window.location.reload()
+                refetch()
             }, 2000)
         } catch (err) {
             if (err instanceof ApiError) {
-                setError(err.message)
+                setFormError(err.message)
             } else {
-                setError('Failed to register device')
+                setFormError('Failed to register device')
             }
         }
     }
@@ -62,11 +69,11 @@ const DevicesPage = () => {
     const handleDisableDevice = async (deviceId: string) => {
         if (!confirm('Are you sure you want to disable this device?')) return
         try {
-            await apiClient.post(`/api/devices/${deviceId}/disable`, {})
+            await apiClient.delete(`/api/devices/${deviceId}`)
             setSuccess('Device disabled successfully')
-            window.location.reload()
+            refetch()
         } catch (err) {
-            setError('Failed to disable device')
+            setFormError('Failed to disable device')
         }
     }
 
@@ -74,15 +81,15 @@ const DevicesPage = () => {
         const newName = prompt('Enter new device name:')
         if (!newName) return
         try {
-            await apiClient.post(`/api/devices/${deviceId}/rename`, { name: newName })
+            await apiClient.put(`/api/devices/${deviceId}`, { name: newName })
             setSuccess('Device renamed successfully')
-            window.location.reload()
+            refetch()
         } catch (err) {
-            setError('Failed to rename device')
+            setFormError('Failed to rename device')
         }
     }
 
-    const formatLastSeen = (date: Date) => {
+    const formatLastSeen = (date: string | Date) => {
         const lastSeen = new Date(date)
         const now = new Date()
         const diff = now.getTime() - lastSeen.getTime()
@@ -101,7 +108,7 @@ const DevicesPage = () => {
         <>
             <h1>Doors & Devices</h1>
 
-            {error && <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</p>}
+            {formError && <p style={{ color: '#ef4444', marginBottom: '1rem' }}>{formError}</p>}
             {success && <p style={{ color: '#10b981', marginBottom: '1rem' }}>{success}</p>}
 
             <button
@@ -133,18 +140,18 @@ const DevicesPage = () => {
                         <label style={{ display: 'block', marginBottom: '0.25rem' }}>Device Name</label>
                         <input
                             type="text"
-                            value={registrationData.name}
-                            onChange={(e) => setRegistrationData({ ...registrationData, name: e.target.value })}
+                            value={registrationData.device_name}
+                            onChange={(e) => setRegistrationData({ ...registrationData, device_name: e.target.value })}
                             required
                             style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
                         />
                     </div>
                     <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.25rem' }}>Door ID</label>
+                        <label style={{ display: 'block', marginBottom: '0.25rem' }}>Door Name</label>
                         <input
                             type="text"
-                            value={registrationData.doorId}
-                            onChange={(e) => setRegistrationData({ ...registrationData, doorId: e.target.value })}
+                            value={registrationData.door_name}
+                            onChange={(e) => setRegistrationData({ ...registrationData, door_name: e.target.value })}
                             required
                             style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}
                         />
@@ -185,95 +192,97 @@ const DevicesPage = () => {
                 </div>
             )}
 
-            {devicesRes.loading && <p>Loading devices...</p>}
-            {devicesRes.error && <p style={{ color: '#ef4444' }}>Failed to load devices</p>}
+            {loading && <p>Loading devices...</p>}
+            {error && <p style={{ color: '#ef4444' }}>Failed to load devices</p>}
 
-            {devicesRes.data?.data && devicesRes.data.data.length > 0 && (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Door</th>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Device</th>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Status</th>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Last Seen</th>
-                            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {devicesRes.data.data.map((device) => (
-                            <tr key={device.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                <td style={{ padding: '0.75rem' }}>{device.doorId}</td>
-                                <td style={{ padding: '0.75rem' }}>{device.name}</td>
-                                <td style={{ padding: '0.75rem' }}>
-                                    <span
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            padding: '0.25rem 0.75rem',
-                                            backgroundColor:
-                                                device.status === DeviceStatusEnum.ONLINE
-                                                    ? '#d1fae5'
-                                                    : device.status === DeviceStatusEnum.OFFLINE
-                                                      ? '#fee2e2'
-                                                      : '#f3f4f6',
-                                            color:
-                                                device.status === DeviceStatusEnum.ONLINE
-                                                    ? '#065f46'
-                                                    : device.status === DeviceStatusEnum.OFFLINE
-                                                      ? '#991b1b'
-                                                      : '#374151',
-                                            borderRadius: '0.25rem',
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
+            {data?.items && data.items.length > 0 && (
+                <div className="table-scroll">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>Door</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>Device</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>Status</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>Last Seen</th>
+                                <th style={{ textAlign: 'left', padding: '0.75rem' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.items.map((device) => (
+                                <tr key={device.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                    <td style={{ padding: '0.75rem' }}>{device.doorId}</td>
+                                    <td style={{ padding: '0.75rem' }}>{device.name}</td>
+                                    <td style={{ padding: '0.75rem' }}>
                                         <span
                                             style={{
-                                                width: '8px',
-                                                height: '8px',
-                                                borderRadius: '50%',
-                                                backgroundColor: getStatusColor(device.status),
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                padding: '0.25rem 0.75rem',
+                                                backgroundColor:
+                                                    device.status === DeviceStatusEnum.ONLINE
+                                                        ? '#d1fae5'
+                                                        : device.status === DeviceStatusEnum.OFFLINE
+                                                          ? '#fee2e2'
+                                                          : '#f3f4f6',
+                                                color:
+                                                    device.status === DeviceStatusEnum.ONLINE
+                                                        ? '#065f46'
+                                                        : device.status === DeviceStatusEnum.OFFLINE
+                                                          ? '#991b1b'
+                                                          : '#374151',
+                                                borderRadius: '0.25rem',
+                                                fontSize: '0.875rem',
                                             }}
-                                        />
-                                        {device.status}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '0.75rem', color: '#6b7280' }}>{formatLastSeen(device.lastSeen)}</td>
-                                <td style={{ padding: '0.75rem' }}>
-                                    <button
-                                        onClick={() => handleRenameDevice(device.id)}
-                                        style={{
-                                            marginRight: '0.5rem',
-                                            padding: '0.25rem 0.75rem',
-                                            backgroundColor: '#8b5cf6',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.25rem',
-                                            cursor: 'pointer',
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
-                                        Rename
-                                    </button>
-                                    <button
-                                        onClick={() => handleDisableDevice(device.id)}
-                                        style={{
-                                            padding: '0.25rem 0.75rem',
-                                            backgroundColor: '#ef4444',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.25rem',
-                                            cursor: 'pointer',
-                                            fontSize: '0.875rem',
-                                        }}
-                                    >
-                                        Disable
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                        >
+                                            <span
+                                                style={{
+                                                    width: '8px',
+                                                    height: '8px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: getStatusColor(device.status),
+                                                }}
+                                            />
+                                            {device.status}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '0.75rem', color: '#6b7280' }}>{formatLastSeen(device.lastSeen ?? new Date())}</td>
+                                    <td style={{ padding: '0.75rem' }}>
+                                        <button
+                                            onClick={() => handleRenameDevice(device.id)}
+                                            style={{
+                                                marginRight: '0.5rem',
+                                                padding: '0.25rem 0.75rem',
+                                                backgroundColor: '#8b5cf6',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '0.25rem',
+                                                cursor: 'pointer',
+                                                fontSize: '0.875rem',
+                                            }}
+                                        >
+                                            Rename
+                                        </button>
+                                        <button
+                                            onClick={() => handleDisableDevice(device.id)}
+                                            style={{
+                                                padding: '0.25rem 0.75rem',
+                                                backgroundColor: '#ef4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '0.25rem',
+                                                cursor: 'pointer',
+                                                fontSize: '0.875rem',
+                                            }}
+                                        >
+                                            Disable
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </>
     )

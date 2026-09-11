@@ -57,3 +57,12 @@ export function completeSession(sessionId: string, status: EnrollmentStatus) {
     session.status = status;
   }
 }
+
+export function getSessionStatus(): EnrollmentStatus | undefined {
+  purgeExpired();
+  let latest: EnrollmentSession | undefined;
+  for (const session of sessions.values()) {
+    if (!latest || session.createdAt > latest.createdAt) latest = session;
+  }
+  return latest?.status;
+}

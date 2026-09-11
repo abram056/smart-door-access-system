@@ -1,5 +1,3 @@
-import { User } from '@smartdoor/shared'
-
 interface SystemSummaryProps {
     usersCount: number
     cardsCount: number
@@ -28,7 +26,7 @@ const SystemSummary = ({
             {loading ? (
                 <p>Loading...</p>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                <div className="stats-grid">
                     {items.map((item) => (
                         <div
                             key={item.label}

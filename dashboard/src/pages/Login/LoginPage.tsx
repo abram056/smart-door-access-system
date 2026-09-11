@@ -42,7 +42,7 @@ const LoginPage = () => {
                     <input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
                 </div>
                 {error ? <p role="alert">{error}</p> : null}
-                <Button label="Sign In" />
+                <Button label="Sign In" type="submit" />
             </form>
         </main>
     )

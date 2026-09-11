@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import type { RFIDCard } from "../../generated/prisma";
 import * as enrollmentService from "./enrollment.service";
 import * as userService from "../users/user.service";
+import { emitEnrollmentCompleted } from "../../websocket";
 import type { CreateCardInput, UpdateCardInput } from "./card.schema";
 
 export async function listCards(page: number, pageSize: number): Promise<PaginatedResult<RFIDCard>> {
@@ -88,10 +89,7 @@ export async function confirmEnrollment(rfidUid: string) {
   const existingUid = await prisma.rFIDCard.findUnique({ where: { uid: rfidUid } });
   if (existingUid) {
     enrollmentService.completeSession(session.sessionId, EnrollmentStatus.FAILED);
-    // Contract 4 failure shape — returned as a 200 with a status field, not
-    // an HTTP error, since this is a valid documented outcome the firmware
-    // and dashboard both branch on.
-    return { status: "FAILED" as const, reason: "CARD_ALREADY_EXISTS" as const };
+    throw AppError.conflict(ErrorCodes.CARD_ALREADY_EXISTS, "This RFID uid is already registered.");
   }
 
   const card = await prisma.rFIDCard.create({
@@ -99,6 +97,8 @@ export async function confirmEnrollment(rfidUid: string) {
     include: { user: true },
   });
   enrollmentService.completeSession(session.sessionId, EnrollmentStatus.SUCCESS);
+
+  emitEnrollmentCompleted({ status: "REGISTERED", user: card.user.fullName });
 
   return { status: "REGISTERED" as const, user: card.user.fullName };
 }

@@ -12,7 +12,7 @@ const QuickActions = () => {
     return (
         <section>
             <h2>Quick Actions</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+            <div className="quick-actions-grid">
                 {actions.map((action) => (
                     <Link
                         key={action.to}
@@ -29,10 +29,10 @@ const QuickActions = () => {
                             transition: 'background-color 0.2s',
                             cursor: 'pointer',
                         }}
-                        onMouseEnter={(e) => {
+                        onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
                             (e.target as HTMLElement).style.backgroundColor = '#e5e7eb'
                         }}
-                        onMouseLeave={(e) => {
+                        onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
                             (e.target as HTMLElement).style.backgroundColor = '#f3f4f6'
                         }}
                     >

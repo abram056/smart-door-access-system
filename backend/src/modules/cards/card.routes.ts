@@ -13,12 +13,16 @@ import {
   createCardHandler,
   disableCardHandler,
   getCardHandler,
+  getEnrollmentStatusHandler,
   listCardsHandler,
   startEnrollmentHandler,
   updateCardHandler,
 } from "./card.controller";
 
 const router = Router();
+
+// Enrollment status is polled by the ESP32 (device-authenticated, NOT admin).
+router.get("/enroll/status", deviceMiddleware, getEnrollmentStatusHandler);
 
 // Enrollment confirm comes from the ESP32 (FR-9.1: Device-ID/Device-Token on
 // every device request), NOT from an admin session — register this before

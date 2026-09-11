@@ -1,4 +1,5 @@
-import { AccessLog, AccessDecision } from '@smartdoor/shared'
+import type { AccessLog } from '@smartdoor/shared'
+import { AccessResult } from '@smartdoor/shared'
 
 interface RecentActivityProps {
     logs: AccessLog[]
@@ -6,35 +7,29 @@ interface RecentActivityProps {
     error: Error | null
 }
 
-const getDecisionColor = (decision: string) => {
-    switch (decision) {
-        case AccessDecision.GRANTED:
-        case AccessDecision.OFFLINE_GRANTED:
+const getDecisionColor = (result: string) => {
+    switch (result) {
+        case AccessResult.GRANTED:
             return '#10b981'
-        case AccessDecision.DENIED:
-        case AccessDecision.OFFLINE_DENIED:
+        case AccessResult.DENIED:
             return '#ef4444'
         default:
             return '#6b7280'
     }
 }
 
-const getDecisionLabel = (decision: string) => {
-    switch (decision) {
-        case AccessDecision.GRANTED:
+const getDecisionLabel = (result: string) => {
+    switch (result) {
+        case AccessResult.GRANTED:
             return 'Granted'
-        case AccessDecision.DENIED:
+        case AccessResult.DENIED:
             return 'Denied'
-        case AccessDecision.OFFLINE_GRANTED:
-            return 'Granted (Offline)'
-        case AccessDecision.OFFLINE_DENIED:
-            return 'Denied (Offline)'
         default:
-            return decision
+            return result
     }
 }
 
-const formatTime = (date: Date) => {
+const formatTime = (date: string) => {
     const time = new Date(date)
     return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
@@ -74,16 +69,16 @@ const RecentActivity = ({ logs, loading, error }: RecentActivityProps) => {
                             <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
                                 {formatTime(log.timestamp)}
                             </p>
-                            <p style={{ margin: 0, fontWeight: '500' }}>{log.username || 'Unknown'}</p>
-                            <p style={{ margin: 0, color: '#6b7280' }}>{log.doorId}</p>
+                            <p style={{ margin: 0, fontWeight: '500' }}>{log.rfidUid || 'Unknown'}</p>
+                            <p style={{ margin: 0, color: '#6b7280' }}>{log.doorId || '-'}</p>
                             <p
                                 style={{
                                     margin: 0,
                                     fontWeight: '600',
-                                    color: getDecisionColor(log.decision),
+                                    color: getDecisionColor(log.result),
                                 }}
                             >
-                                {getDecisionLabel(log.decision)}
+                                {getDecisionLabel(log.result)}
                             </p>
                         </div>
                     ))}

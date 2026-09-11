@@ -29,3 +29,7 @@ export function emitDeviceDisconnected(deviceId: string) {
 export function emitAccessLogCreated(log: unknown) {
   getIO().emit(AccessEvents.LOG_CREATED, log);
 }
+
+export function emitEnrollmentCompleted(data: { status: string; user?: string }) {
+  getIO().emit(AccessEvents.ENROLLMENT_COMPLETED, data);
+}

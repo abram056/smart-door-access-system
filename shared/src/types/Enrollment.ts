@@ -21,6 +21,6 @@ export interface EnrollConfirmRequest {
   rfid_uid: string;
 }
 
-export type EnrollConfirmResponse =
-  | { status: "REGISTERED"; user: string }
-  | { status: "FAILED"; reason: "CARD_ALREADY_EXISTS" };
+// On success: { status: "REGISTERED", user: string }
+// On duplicate uid: HTTP 409 { error: { code: "CARD_ALREADY_EXISTS", message: string } }
+export type EnrollConfirmResponse = { status: "REGISTERED"; user: string };

@@ -1,4 +1,5 @@
-import { Device, DeviceStatus as DeviceStatusEnum } from '@smartdoor/shared'
+import type { Device } from '@smartdoor/shared'
+import { DeviceStatus as DeviceStatusEnum } from '@smartdoor/shared'
 
 interface DeviceStatusWidgetProps {
     devices: Device[]
@@ -19,7 +20,7 @@ const getStatusColor = (status: string) => {
     }
 }
 
-const formatLastSeen = (date: Date) => {
+const formatLastSeen = (date: string | Date) => {
     const lastSeen = new Date(date)
     const now = new Date()
     const diff = now.getTime() - lastSeen.getTime()
@@ -82,7 +83,7 @@ const DeviceStatusWidget = ({ devices, loading, error }: DeviceStatusWidgetProps
                                 </div>
                             </div>
                             <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>
-                                Last seen: {formatLastSeen(device.lastSeen)}
+                                Last seen: {formatLastSeen(device.lastSeen ?? new Date())}
                             </p>
                         </div>
                     ))}

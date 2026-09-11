@@ -20,7 +20,18 @@ export function validate(target: Target, schema: ZodTypeAny) {
       return;
     }
     // Reassign so downstream handlers get coerced/defaulted values.
-    (req as any)[target] = result.data;
+    // Express defines req.query as a getter-only property on the prototype,
+    // so we must redefine it on the instance to shadow the getter.
+    if (target === "query") {
+      Object.defineProperty(req, "query", {
+        value: result.data,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    } else {
+      (req as any)[target] = result.data;
+    }
     next();
   };
 }

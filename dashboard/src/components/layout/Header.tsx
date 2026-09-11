@@ -14,18 +14,8 @@ const Header = () => {
     }
 
     return (
-        <header
-            style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1rem',
-                backgroundColor: '#ffffff',
-                borderBottom: '1px solid #e5e7eb',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            }}
-        >
-            <h2 style={{ margin: 0 }}>Smart Door Dashboard</h2>
+        <header className="header">
+            <h2 className="header-title">Smart Door Dashboard</h2>
             <button
                 onClick={handleLogout}
                 style={{

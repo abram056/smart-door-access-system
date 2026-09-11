@@ -26,6 +26,8 @@ export interface AccessLog {
   doorId?: string | null;
   userId?: string | null;
   cardId?: string | null;
+  userFullName?: string | null;
+  doorName?: string | null;
 }
 
 // Contract 2 — POST /api/access

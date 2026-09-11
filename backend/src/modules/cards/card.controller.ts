@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import * as cardService from "./card.service";
+import * as enrollmentService from "./enrollment.service";
 import type {
   CreateCardInput,
   EnrollConfirmInput,
@@ -29,7 +30,7 @@ export async function createCardHandler(req: Request, res: Response, next: NextF
 
 export async function getCardHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const card = await cardService.getCardOrThrow(req.params.id);
+    const card = await cardService.getCardOrThrow(req.params.id as string);
     res.status(200).json(card);
   } catch (err) {
     next(err);
@@ -38,7 +39,7 @@ export async function getCardHandler(req: Request, res: Response, next: NextFunc
 
 export async function updateCardHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const card = await cardService.updateCard(req.params.id, req.body as UpdateCardInput);
+    const card = await cardService.updateCard(req.params.id as string, req.body as UpdateCardInput);
     res.status(200).json(card);
   } catch (err) {
     next(err);
@@ -47,7 +48,7 @@ export async function updateCardHandler(req: Request, res: Response, next: NextF
 
 export async function disableCardHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const card = await cardService.disableCard(req.params.id);
+    const card = await cardService.disableCard(req.params.id as string);
     res.status(200).json(card);
   } catch (err) {
     next(err);
@@ -67,6 +68,11 @@ export async function startEnrollmentHandler(req: Request, res: Response, next: 
 
 // POST /api/cards/enroll/confirm — ESP32 posts the scanned uid (Contract 4).
 // Note: device-authenticated, not admin-authenticated — see card.routes.ts.
+export async function getEnrollmentStatusHandler(_req: Request, res: Response) {
+  const status = enrollmentService.getSessionStatus();
+  res.status(200).json({ status: status ?? "IDLE" });
+}
+
 export async function confirmEnrollmentHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const { rfid_uid } = req.body as EnrollConfirmInput;
